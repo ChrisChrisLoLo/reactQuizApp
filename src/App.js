@@ -19,6 +19,8 @@ class App extends Component {
   }
 }
 
+//a list where questions and their properties resign. time currently doesnt work.
+//Eventually this should become a JSON file
 function quesItem(question,posAns,corAns,time){
   this.question = question;
   this.posAns = posAns;
@@ -39,10 +41,13 @@ class Game extends Component{
     super(props);
     this.nextQues = this.nextQues.bind(this);
     this.scoreUp = this.scoreUp.bind(this);
+    this.answerQues = this.answerQues.bind(this);
+    this.resetQuestionState = this.resetQuestionState.bind(this);
     this.state = {quesIndex: 0,
                   score: 0,
                   correct: null,
-                  finished: false};
+                  finished: false,
+                  answer: null};
   }
 
   nextQues(){
@@ -53,18 +58,32 @@ class Game extends Component{
     console.log(newIndex);
   }
 
+  answerQues(correct,answer){
+    this.setState({correct : correct,
+                  finished : true,
+                  answer: answer
+    });
+  }
+
   scoreUp(){
     const newScore = this.state.score + 1;
     this.setState({score:newScore});
   }
 
+  //Reset the state of the question after "Next has been clicked on"
+  resetQuestionState(){
+    this.setState({correct: null,
+                  finished: false,
+                  answer: null});
+  }
   render(){
     const newQuestion = questionQueue[this.state.quesIndex];
     return(
       <div>
         <h2>Score: {this.state.score}</h2>
         <QuesBox question={newQuestion.question} correctAns={newQuestion.corAns} allAns={newQuestion.posAns}
-        nextQues={this.nextQues} scoreUp={this.scoreUp} />
+        nextQues={this.nextQues} scoreUp={this.scoreUp} answerQues={this.answerQues} correct={this.state.correct}
+        finished={this.state.finished} answer={this.state.answer} resetQuestionState={this.resetQuestionState}/>
       </div>
     )
   }
@@ -77,15 +96,9 @@ class QuesBox extends Component{
     super(props);
     this.giveAns = this.giveAns.bind(this);
     this.handleOnClickNext = this.handleOnClickNext.bind(this);
-    this.state = {answer: 'nullAns' ,
-                  correct: null,
-                  finished: false
-                  };
   }
-
   giveAns(newAns){
-    //This will probably fail as its calling upon QuesBox props
-    if (this.state.finished){
+    if (this.props.finished){
       return;
     }
     const correct = (newAns === this.props.correctAns);
@@ -93,26 +106,25 @@ class QuesBox extends Component{
     if (correct) {
       this.props.scoreUp()
     }
-    this.setState({
-      answer: newAns,
-      correct: correct,
-      finished: true,
-    });
+    this.props.answerQues(correct,newAns);
   }
 
   handleOnClickNext(){
     this.props.nextQues();
-
+    this.props.resetQuestionState();
   }
 
   render() {
     //Display button to proceed to next question once question has been answered
-    const buttonNext = (this.state.correct == null ? null:<button onClick={this.handleOnClickNext}>Next</button>);
+    //Forgive me for bordeline spaghetti code
+    //the two consts will be null and NOT displayed until the question has been answered.
+    const buttonNext = (this.props.correct == null ? null:<button onClick={this.handleOnClickNext}>Next</button>);
+    const displayCorrect = (this.props.correct == null ? null:(this.props.correct ? "Correct":"Wrong"));
     return (
     <div>
       <h1>{this.props.question}</h1>
-      <h2>{this.state.answer}</h2>
-      <h2>{this.state.correct ? "Correct":"Wrong"}</h2>
+      <h2>{this.props.answer}</h2>
+      <h2>{displayCorrect}</h2>
       <div>
         <AnsButton ans={this.props.allAns[0]} onClick={this.giveAns}/>
         <AnsButton ans={this.props.allAns[1]} onClick={this.giveAns}/>
